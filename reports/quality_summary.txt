@@ -1,0 +1,44 @@
+DATA QUALITY SUMMARY
+====================
+Years loaded: 2015-2022
+Raw rows: 49,117
+Duplicate reports removed (same hospital, same year): 764
+Clean rows (hospital-years): 48,353
+Unique hospitals (CCNs): 6,594
+Columns: 118
+
+Rows by year:
+           raw_rows  unique_hospitals  duplicate_reports  clean_rows
+file_year                                                           
+2015           6258              6125                133        6125
+2016           6211              6107                104        6107
+2017           6175              6077                 98        6077
+2018           6161              6049                112        6049
+2019           6125              6017                108        6017
+2020           6060              5990                 70        5990
+2021           6058              5984                 74        5984
+2022           6069              6004                 65        6004
+
+Columns with the most missing values (%):
+drg_amounts_other_than_outlier_payments              100.0
+hospital_total_days_title_v_for_adults_peds           97.5
+total_discharges_title_v                              97.4
+hospital_total_discharges_title_v_for_adults_peds     97.4
+total_days_title_v                                    97.2
+notes_receivable                                      95.4
+unsecured_loans                                       95.1
+wage_related_costs_rhc_fqhc                           93.6
+wage_related_costs_for_part_a_teaching_physicians     93.3
+health_information_technology_designated_assets       91.1
+wage_related_costs_for_interns_and_residents          86.9
+mortgage_payable                                      86.6
+deferred_income                                       84.0
+net_revenue_from_stand_alone_chip                     83.9
+stand_alone_chip_charges                              83.6
+minor_equipment_depreciable                           83.6
+total_ime_payment                                     80.4
+temporary_investments                                 80.2
+managed_care_simulated_payments                       77.3
+number_of_interns_and_residents_fte                   77.2
+
+Columns more than 50% missing: 31 of 118
