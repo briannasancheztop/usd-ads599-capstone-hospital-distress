@@ -1,0 +1,167 @@
+
+1. SAMPLE AND TARGET
+====================
+Hospital-years in analytic sample: 36,874
+Unique hospitals: 4,909
+Labeled hospital-years (feature years 2015-2021): 31,933
+Unlabeled: 4,941 (last year, gap years, or next-year margin missing)
+Distressed share: 32.2% (10,275 distressed, 21,658 healthy)
+Exits counted as distress: 373
+  Train (2015-2019): 22,897 rows, 31.3% distressed
+  Validation (2020): 4,531 rows, 26.6% distressed
+  Test (2021): 4,505 rows, 42.3% distressed
+
+2. WINSORIZING (1st/99th percentile of training years)
+======================================================
+Variable                       Lower cap   Upper cap       Raw min       Raw max  Rows capped  Skew before  Skew after
+Operating margin                  -1.082       0.371        -72.06          1.35         2.1%        -61.0        -1.8
+Total margin                      -0.536       0.393        -72.06          3.21         2.1%        -74.3        -0.9
+Current ratio                      0.129      27.481          0.00     390142.03         2.0%         85.1         4.0
+Days cash on hand                -49.461     578.450      -1641.37  174021654.00         2.3%        189.2         2.8
+Days in accounts receivable       22.774     909.403          0.00      57057.80         2.1%         49.2         3.5
+Debt ratio                        -3.323       3.401        -89.17    6117491.00         2.2%        112.9        -1.2
+Equity ratio                      -2.415       4.333   -6117490.00         90.17         2.2%       -112.9         1.2
+Occupancy rate                     0.037       0.922          0.00          1.00         2.2%          0.1         0.1
+Medicare share                     0.040       0.912          0.00          1.00         1.9%          0.6         0.6
+Medicaid share                     0.001       0.480          0.00          1.00         2.2%          2.6         1.9
+  saved reports/figures/eda_winsorizing_before_after.png
+
+3. LOG TRANSFORM (beds and net patient revenue)
+===============================================
+Number of beds: skew before 190.6, after log 0.2; median 73, 99th percentile 866, max 1,594,784
+Net patient revenue ($): skew before 5.8, after log 0.0; median 84,063,311, 99th percentile 1,919,853,318, max 8,944,229,494
+  saved reports/figures/eda_log_transform_before_after.png
+
+4. FEATURES BY DISTRESS CLASS (labeled rows, capped values)
+===========================================================
+Variable                              Healthy median [IQR]         Distressed median [IQR]         p  effect
+Operating margin                 0.009 [-0.076, 0.089]        -0.103 [-0.213, -0.035]        0.0e+00   -0.50
+Total margin                     0.072 [0.022, 0.138]         -0.019 [-0.088, 0.034]         0.0e+00   -0.57
+Current ratio                    2.153 [1.329, 3.530]          1.605 [0.882, 2.723]         1.4e-218   -0.23
+Days cash on hand               22.664 [0.307, 89.876]        13.182 [0.443, 53.784]         1.7e-51   -0.11
+Days in accounts receivable     92.825 [55.324, 151.244]     103.820 [58.997, 175.771]       1.7e-30    0.08
+Debt ratio                       0.391 [0.182, 0.622]          0.565 [0.316, 0.946]          0.0e+00    0.29
+Equity ratio                     0.608 [0.377, 0.818]          0.436 [0.056, 0.685]          0.0e+00   -0.29
+Occupancy rate                   0.483 [0.300, 0.662]          0.398 [0.234, 0.585]         6.8e-124   -0.16
+Medicare share                   0.386 [0.283, 0.516]          0.408 [0.288, 0.566]          9.4e-18    0.06
+Medicaid share                   0.058 [0.026, 0.121]          0.057 [0.024, 0.122]          3.5e-01   -0.01
+Revenue growth                   0.044 [-0.010, 0.104]         0.032 [-0.041, 0.110]         3.2e-23   -0.08
+Beds (log)                       4.431 [3.258, 5.394]          3.932 [3.258, 5.063]          1.5e-49   -0.10
+Change in total margin           0.006 [-0.029, 0.045]        -0.005 [-0.061, 0.048]         3.8e-44   -0.11
+effect = rank-biserial correlation (distressed vs. healthy); |0.1| small, |0.3| medium, |0.5| large
+saved reports/eda_stats_by_class.csv
+  saved reports/figures/eda_features_by_distress_class.png
+
+5. DISTRESS RATE BY GROUP (labeled rows)
+========================================
+Facility type (chi-square = 0.0, p = 9.1e-01):
+  Short-term acute     32.2% of 22,594 hospital-years
+  Critical access      32.2% of 9,339 hospital-years
+Ownership (chi-square = 111.4, p = 6.5e-25):
+  Nonprofit            30.6% of 18,728 hospital-years
+  For-profit           31.1% of 6,243 hospital-years
+  Government           37.4% of 6,962 hospital-years
+Location (chi-square = 61.9, p = 3.7e-15):
+  Urban                30.1% of 16,274 hospital-years
+  Rural                34.2% of 15,636 hospital-years
+  saved reports/figures/eda_distress_rate_by_group.png
+
+6. DISTRESS RATE BY OUTCOME YEAR AND FACILITY TYPE
+==================================================
+facility     Critical access Short-term acute All hospitals
+outcome_year                                               
+2016                   39.5%            30.3%         32.9%
+2017                   40.0%            31.7%         34.1%
+2018                   39.3%            33.2%         35.0%
+2019                   32.6%            31.7%         32.0%
+2020                   20.5%            23.1%         22.3%
+2021                   19.2%            29.7%         26.6%
+2022                   34.7%            45.5%         42.3%
+  saved reports/figures/eda_distress_trend_by_facility_type.png
+
+7. MEDIAN RATIOS BY YEAR AND FACILITY TYPE (capped values)
+==========================================================
+                            total_margin  operating_margin  days_cash_on_hand
+file_year facility                                                           
+2015      Critical access          0.030            -0.052             39.562
+          Short-term acute         0.042             0.003             12.073
+2016      Critical access          0.020            -0.060             38.215
+          Short-term acute         0.046            -0.004              9.809
+2017      Critical access          0.017            -0.065             37.370
+          Short-term acute         0.042            -0.009              8.700
+2018      Critical access          0.017            -0.067             34.959
+          Short-term acute         0.043            -0.006              9.099
+2019      Critical access          0.031            -0.082             59.844
+          Short-term acute         0.044            -0.021             10.410
+2020      Critical access          0.089            -0.094            127.094
+          Short-term acute         0.071            -0.040             18.179
+2021      Critical access          0.095            -0.055             97.104
+          Short-term acute         0.058            -0.023              9.749
+2022      Critical access          0.032            -0.071             60.559
+          Short-term acute         0.011            -0.048              5.525
+  saved reports/figures/eda_median_ratios_over_time.png
+
+8. PERSISTENCE: THIS YEAR'S MARGIN VS. NEXT YEAR'S DISTRESS
+===========================================================
+Distress next year if total margin < 0 this year: 63.6% (n=9,495)
+Distress next year if total margin >= 0 this year: 18.7%
+Naive rule 'distressed next year if margin < 0 now': recall 59.2%, precision 63.6%
+Distress rate by decile of this year's total margin:
+  decile  1 (-53.6% to -9.2%): 77.4%
+  decile  2 (-9.2% to -3.2%): 63.4%
+  decile  3 (-3.2% to 0.0%): 49.9%
+  decile  4 (0.0% to 2.3%): 36.5%
+  decile  5 (2.3% to 4.5%): 25.4%
+  decile  6 (4.5% to 6.9%): 19.5%
+  decile  7 (6.9% to 9.7%): 14.8%
+  decile  8 (9.7% to 13.4%): 12.2%
+  decile  9 (13.4% to 19.6%): 10.6%
+  decile 10 (19.6% to 39.3%): 11.3%
+Distress rate by 1-year change in total margin, within current margin level:
+                                       mean  size
+                    total_margin_chg             
+Negative margin now Fell\n>5 pts      62.1%  3373
+                    Fell\n1-5 pts     59.0%  1691
+                    Stable\n(±1 pt)   64.8%   864
+                    Rose\n1-5 pts     63.9%   958
+                    Rose\n>5 pts      67.4%  1053
+Positive margin now Fell\n>5 pts      17.9%  2100
+                    Fell\n1-5 pts     16.2%  3618
+                    Stable\n(±1 pt)   14.1%  3229
+                    Rose\n1-5 pts     16.3%  4737
+                    Rose\n>5 pts      26.2%  5237
+  saved reports/figures/eda_persistence_margin_level_and_trend.png
+
+9. SPEARMAN CORRELATIONS (training years)
+=========================================
+Strongest feature pairs:
+  Debt ratio / Equity ratio: rho = -0.99
+  Total margin / Operating margin: rho = 0.76
+  Occupancy rate / Beds (log): rho = 0.65
+  Medicare share / Beds (log): rho = -0.55
+  Current ratio / Debt ratio: rho = -0.51
+  Current ratio / Equity ratio: rho = 0.51
+  Occupancy rate / Medicare share: rho = -0.46
+  Total margin / Equity ratio: rho = 0.41
+Correlation with next-year distress:
+  Total margin                 rho = -0.52
+  Operating margin             rho = -0.43
+  Equity ratio                 rho = -0.25
+  Current ratio                rho = -0.19
+  Occupancy rate               rho = -0.18
+  Revenue growth               rho = -0.14
+  Beds (log)                   rho = -0.14
+  Change in total margin       rho = -0.12
+  Days cash on hand            rho = -0.10
+  Medicaid share               rho = -0.02
+  Days in accounts receivable  rho = 0.07
+  Medicare share               rho = 0.10
+  Debt ratio                   rho = 0.25
+  saved reports/figures/eda_correlation_heatmap.png
+
+10. DISTRESS RATE BY STATE (states with at least 150 labeled hospital-years)
+============================================================================
+States shown: 46; range 8.7% (UT) to 50.3% (MS)
+Highest 5: MS 50.3%, NY 46.0%, KS 45.3%, AL 45.2%, OK 43.8%
+Lowest 5: UT 8.7%, WI 20.5%, SD 20.9%, NV 21.4%, FL 24.4%
+  saved reports/figures/eda_distress_rate_by_state.png
