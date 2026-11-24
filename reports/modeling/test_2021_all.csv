@@ -1,0 +1,6 @@
+model,pr_auc,roc_auc,recall_top10,precision_top10,recall_top20,precision_top20,recall_top30,precision_top30
+Logit (balanced),0.69,0.764,0.188,0.794,0.355,0.75,0.503,0.709
+Random forest,0.721,0.782,0.204,0.863,0.371,0.785,0.508,0.717
+XGBoost,0.709,0.78,0.195,0.823,0.359,0.759,0.497,0.701
+MLP,0.685,0.767,0.188,0.794,0.35,0.74,0.497,0.7
+Margin ranking,0.657,0.737,0.182,0.769,0.342,0.723,0.492,0.693

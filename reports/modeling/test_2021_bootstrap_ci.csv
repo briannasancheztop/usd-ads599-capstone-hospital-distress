@@ -1,0 +1,6 @@
+,pr_auc,ci_low,ci_high
+Logit (balanced),0.6898,0.6662,0.7126
+Random forest,0.7208,0.6977,0.7414
+XGBoost,0.7089,0.685,0.7306
+MLP,0.6846,0.6597,0.7088
+Margin ranking,0.6565,0.632,0.6805

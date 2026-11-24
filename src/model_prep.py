@@ -15,14 +15,14 @@ Run from the project folder after features.py:
 
 import sqlite3
 from pathlib import Path
-
+import numpy as np
 import pandas as pd
 from sklearn.compose import ColumnTransformer
 from sklearn.impute import SimpleImputer
 from sklearn.linear_model import LogisticRegression
 from sklearn.metrics import roc_auc_score
 from sklearn.pipeline import Pipeline
-from sklearn.preprocessing import OneHotEncoder, StandardScaler
+from sklearn.preprocessing import FunctionTransformer, OneHotEncoder, StandardScaler
 
 PROJECT_DIR = Path(__file__).resolve().parents[1]
 DB_PATH = PROJECT_DIR / "data" / "hospital_cost_reports.db"
@@ -37,12 +37,12 @@ LAG_COLS = ["total_margin", "operating_margin", "days_cash_on_hand",
 
 NUMERIC = [
     "operating_margin", "total_margin", "current_ratio", "days_cash_on_hand",
-    "days_in_ar", "debt_ratio", "equity_ratio", "occupancy",
+    "days_in_ar", "debt_ratio", "occupancy",
     "medicare_share", "medicaid_share", "log_beds", "log_revenue",
     "revenue_growth",
 ] + [f"{c}_lag1" for c in LAG_COLS] + [f"{c}_chg" for c in LAG_COLS]
 
-FLAGS = ["partial_year", "balance_sheet_missing", "medicaid_days_missing",
+FLAGS = ["balance_sheet_missing", "medicaid_days_missing",
          "negative_liabilities", "neg_margin_last_year"]
 
 CATEGORICAL = ["ccn_facility_type", "control_group", "rural_urban"]
@@ -67,6 +67,9 @@ def get_splits():
             val[FEATURES], val[TARGET],
             test[FEATURES], test[TARGET])
 
+def none_to_nan(X):
+    """SQL returns missing text as None, which SimpleImputer ignores. Convert it to NaN."""
+    return pd.DataFrame(X).astype(object).where(pd.notna(X), np.nan)
 
 def build_preprocessor():
     """Medians and categories are learned from whatever data .fit() sees (train only)."""
@@ -76,6 +79,7 @@ def build_preprocessor():
     ])
     flag_pipe = SimpleImputer(strategy="most_frequent")
     cat_pipe = Pipeline([
+        ("fix_none", FunctionTransformer(none_to_nan, feature_names_out="one-to-one")),
         ("impute", SimpleImputer(strategy="most_frequent")),
         ("onehot", OneHotEncoder(handle_unknown="ignore")),
     ])
@@ -98,7 +102,7 @@ if __name__ == "__main__":
     print((X_train.isna().mean() * 100).round(1).sort_values(ascending=False)
           .head(10).to_string())
 
-    # Baseline 1: last year's margin alone. Lower margin = higher risk.
+    # Baseline 1: this year's margin alone. Lower margin = higher risk.
     margin = X_val["total_margin"].fillna(X_train["total_margin"].median())
     auc_naive = roc_auc_score(y_val, -margin)
 
