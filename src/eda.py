@@ -1,19 +1,7 @@
 """
-Exploratory data analysis for the hospital financial distress project.
-
-Builds every EDA figure for the paper and a text summary of the numbers behind them.
-Run from the project folder after pipeline.py (features.py does not need to be run first):
-
-    python src/eda.py
-
-Outputs
-    reports/figures/eda_*.png     300-dpi figures sized for the paper
-                                  (6.5 in wide = full page, 3.25 in wide = one column)
-    reports/eda_summary.txt       every number cited in the EDA write-up
-    reports/eda_stats_by_class.csv  descriptive statistics by distress class
-
-Figures have no titles inside the image: in APA 7 the figure number and title go
-above the figure in the document, so they are added in Word.
+EDA for the hospital financial distress project.
+Run after pipeline.py:  python src/eda.py
+Saves figures to reports/figures/ and the numbers to reports/eda_summary.txt.
 """
 
 import sqlite3
@@ -41,9 +29,6 @@ FIG_DIR = PROJECT_DIR / "reports" / "figures"
 SUMMARY_PATH = PROJECT_DIR / "reports" / "eda_summary.txt"
 STATS_PATH = PROJECT_DIR / "reports" / "eda_stats_by_class.csv"
 
-# ---------------------------------------------------------------------------
-# Style: one look for every figure
-# ---------------------------------------------------------------------------
 FULL_W, COL_W = 6.5, 3.25          # inches: full page width, one column
 INK, MUTED, GRID = "#0b0b0b", "#52514e", "#e4e3df"
 HEALTHY, DISTRESSED = "#2a78d6", "#eb6834"   # categorical slots 1 and 2
@@ -128,9 +113,6 @@ def pct_axis(ax, axis="x"):
     (ax.xaxis if axis == "x" else ax.yaxis).set_major_formatter(fmt)
 
 
-# ---------------------------------------------------------------------------
-# Data
-# ---------------------------------------------------------------------------
 def load_data():
     clean = load_clean()
     extra = clean[[CCN, "file_year", "state_code"]].copy()
@@ -151,9 +133,6 @@ def load_data():
     return raw, capped, bounds, train_mask
 
 
-# ---------------------------------------------------------------------------
-# 1. Sample and target
-# ---------------------------------------------------------------------------
 def sample_and_target(df):
     section("1. SAMPLE AND TARGET")
     lab = df[df["distress_next"].notna()]
@@ -172,9 +151,6 @@ def sample_and_target(df):
     return lab
 
 
-# ---------------------------------------------------------------------------
-# 2. Transformations: winsorizing and log scales (before vs after)
-# ---------------------------------------------------------------------------
 def fig_winsorizing(raw, capped, bounds, train_mask):
     section("2. WINSORIZING (1st/99th percentile of training years)")
     cols = ["total_margin", "operating_margin", "days_cash_on_hand",
@@ -228,7 +204,9 @@ def fig_log_transform(raw):
         r = raw[rawcol].dropna()
         r = r[r > 0]
         lg = raw[logcol].replace([np.inf, -np.inf], np.nan).dropna()
-        lg = lg[lg > lg.quantile(0.001)]
+        # trim the extreme 0.1% on each side so a few data-entry errors
+        # (e.g., a hospital reporting over a million beds) don't stretch the axis
+        lg = lg[(lg > lg.quantile(0.001)) & (lg < lg.quantile(0.999))]
         say(f"{label}: skew before {stats.skew(r):.1f}, after log {stats.skew(lg):.1f}; "
             f"median {r.median():,.0f}, 99th percentile {r.quantile(0.99):,.0f}, max {r.max():,.0f}")
         axes[row, 0].hist(r.clip(upper=r.quantile(0.995)), bins=60, color=RAW_C)
@@ -238,16 +216,14 @@ def fig_log_transform(raw):
         axes[row, 0].set_ylabel("Hospital-years")
         if rawcol == "net_patient_revenue":
             axes[row, 0].xaxis.set_major_formatter(
-                matplotlib.ticker.FuncFormatter(lambda v, _: f"${v / 1e6:,.0f}M"))
+                matplotlib.ticker.FuncFormatter(lambda v, _: f"${v / 1e9:,.1f}B"))
+            axes[row, 0].xaxis.set_major_locator(matplotlib.ticker.MaxNLocator(5))
     axes[0, 1].set_xlabel("log(1 + beds)")
     axes[1, 1].set_xlabel("log(1 + revenue)")
     fig.tight_layout(h_pad=1.6)
     save(fig, "eda_log_transform_before_after")
 
 
-# ---------------------------------------------------------------------------
-# 4. Distributions by class
-# ---------------------------------------------------------------------------
 def stats_by_class(lab):
     section("4. FEATURES BY DISTRESS CLASS (labeled rows, capped values)")
     cols = RATIO_COLS + ["revenue_growth", "log_beds", "total_margin_chg"]
@@ -306,9 +282,6 @@ def fig_by_class(lab):
     save(fig, "eda_features_by_distress_class")
 
 
-# ---------------------------------------------------------------------------
-# 5. Grouped distress rates
-# ---------------------------------------------------------------------------
 def group_rates(lab):
     section("5. DISTRESS RATE BY GROUP (labeled rows)")
     groups = [("facility", "Facility type"), ("control_group", "Ownership"),
@@ -381,16 +354,14 @@ def fig_ratios_over_time(df):
         if col in PCT_COLS:
             pct_axis(ax, "y")
             ax.axhline(0, color=MUTED, lw=0.6)
-    axes[0].legend(loc="lower left")
+    handles, labels = axes[0].get_legend_handles_labels()
+    fig.legend(handles, labels, loc="upper center", ncol=2, bbox_to_anchor=(0.5, 1.08))
     fig.text(0.0, -0.03, "Medians by reporting year. Shaded band = 2020-2021 (federal pandemic relief).",
              fontsize=7.5, color=MUTED)
     fig.tight_layout(w_pad=1.2)
     save(fig, "eda_median_ratios_over_time")
 
 
-# ---------------------------------------------------------------------------
-# 6. Persistence: does this year's margin (and its trend) predict next year?
-# ---------------------------------------------------------------------------
 def fig_persistence(lab):
     section("8. PERSISTENCE: THIS YEAR'S MARGIN VS. NEXT YEAR'S DISTRESS")
     neg = lab["total_margin"] < 0
@@ -438,14 +409,12 @@ def fig_persistence(lab):
     ax.set_xticks(x, order, fontsize=7.5)
     ax.set_title("By 1-year change in margin", loc="left")
     pct_axis(ax, "y")
-    ax.legend(loc="lower center", ncol=2, bbox_to_anchor=(0.5, 1.08))
+    handles, labels = ax.get_legend_handles_labels()
+    fig.legend(handles, labels, loc="upper center", ncol=2, bbox_to_anchor=(0.5, 1.1))
     fig.tight_layout(w_pad=1.5)
     save(fig, "eda_persistence_margin_level_and_trend")
 
 
-# ---------------------------------------------------------------------------
-# 7. Correlations
-# ---------------------------------------------------------------------------
 def fig_correlations(lab, train_mask_lab):
     section("9. SPEARMAN CORRELATIONS (training years)")
     cols = ["total_margin", "operating_margin", "days_cash_on_hand", "current_ratio",
@@ -490,9 +459,6 @@ def fig_correlations(lab, train_mask_lab):
     save(fig, "eda_correlation_heatmap")
 
 
-# ---------------------------------------------------------------------------
-# 8. Geography
-# ---------------------------------------------------------------------------
 def fig_states(lab, min_rows=150):
     section(f"10. DISTRESS RATE BY STATE (states with at least {min_rows} labeled hospital-years)")
     g = lab.groupby("state_code")["distress_next"].agg(["mean", "size"])
